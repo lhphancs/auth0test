@@ -21,3 +21,10 @@ That is, you will have to go to the "APIs" tab, click your created API's setting
 <add key="auth0:ClientId" value="{}" />
 <add key="auth0:ClientSecret" value="{}" />
 <add key="auth0:Audience" value="{}" />
+
+## Running application
+1) May have clean solution by going to "Build" => "Clean Solution"
+2) Click Start "IIS Express (Microsoft Edge)" Or whatever browser you want. This should automatically open up the browser.
+
+If all works out, it should prompt a login screen where you can login or create and account. You can also log in using another provider like google if you set it up in auth0 webpage.
+After successfully login in, it should bring you to the home page. The about tab is the one that utilizes "admin" role.
