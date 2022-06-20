@@ -11,6 +11,7 @@ using System;
 using System.Configuration;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using System.Web;
 
 namespace Auth0Test
 {
@@ -24,7 +25,7 @@ namespace Auth0Test
             string auth0ClientId = ConfigurationManager.AppSettings["auth0:ClientId"];
             string auth0RedirectUri = ConfigurationManager.AppSettings["auth0:RedirectUri"];
             string auth0PostLogoutRedirectUri = ConfigurationManager.AppSettings["auth0:PostLogoutRedirectUri"];
-
+            
             string auth0ClientSecret = ConfigurationManager.AppSettings["auth0:ClientSecret"];
             string auth0Audience = ConfigurationManager.AppSettings["auth0:Audience"];
             // Set Cookies as default authentication type
@@ -37,12 +38,31 @@ namespace Auth0Test
                 // Configure SameSite as needed for your app. Lax works well for most scenarios here but
                 // you may want to set SameSiteMode.None for HTTPS
                 CookieSameSite = SameSiteMode.Lax,
-
                 // More information on why the CookieManager needs to be set can be found here: 
                 // https://github.com/aspnet/AspNetKatana/wiki/System.Web-response-cookie-integration-issues
-                CookieManager = new SameSiteCookieManager(new SystemWebCookieManager())
-            });
+                CookieManager = new SameSiteCookieManager(new SystemWebCookieManager()),
 
+                // https://brockallen.com/2014/11/18/sliding-and-absolute-expiration-with-cookie-authentication-middleware/
+                Provider = new CookieAuthenticationProvider {
+                    OnResponseSignedIn = context =>
+                    {
+                        // Potential write to database?
+                    },
+                    OnValidateIdentity = context =>
+                    {
+                        // Potential to check database here?
+                        var reject = true;
+                        if (reject)
+                        {
+                            context.RejectIdentity();
+                            context.OwinContext.Authentication.SignOut(CookieAuthenticationDefaults.AuthenticationType);
+                            context.OwinContext.Authentication.SignOut("Auth0");
+                        }
+                        
+                        return Task.FromResult<int>(0);
+                    },
+                }
+            });;
             // Configure Auth0 authentication
             app.UseOpenIdConnectAuthentication(new OpenIdConnectAuthenticationOptions
             {
@@ -51,14 +71,13 @@ namespace Auth0Test
                 Authority = $"https://{auth0Domain}",
 
                 ClientId = auth0ClientId,
-
+                
                 RedirectUri = auth0RedirectUri,
                 PostLogoutRedirectUri = auth0PostLogoutRedirectUri,
-
                 TokenValidationParameters = new TokenValidationParameters
                 {
                     NameClaimType = "name",
-                    RoleClaimType = "https://schemas.quickstarts.com/roles"
+                    RoleClaimType = "https://schemas.quickstarts.com/roles",
                 },
 
                 // More information on why the CookieManager needs to be set can be found here: 
@@ -111,6 +130,7 @@ namespace Auth0Test
                 ClientSecret = auth0ClientSecret,
                 ResponseType = OpenIdConnectResponseType.Code,
                 RedeemCode = true,
+                SaveTokens = true
             });
         }
     }
